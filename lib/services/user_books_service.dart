@@ -11,7 +11,7 @@ class UserBooksService {
 
   UserBooksService() {
     _firestore = FirebaseFirestore.instance;
-    // Configuración más robusta para móvil y web
+    
     try {
       _firestore.settings = const Settings(
         persistenceEnabled: false,
@@ -116,7 +116,7 @@ class UserBooksService {
         .snapshots()
         .handleError((error) {
           print('Error en getUserBooks: $error');
-          // En caso de error, retornar lista vacía
+          
           return <DocumentSnapshot>[];
         })
         .map((snapshot) {
@@ -124,7 +124,7 @@ class UserBooksService {
               .map((doc) => UserBook.fromFirestore(doc))
               .toList();
           
-          // Ordenar manualmente por fecha de agregado (más recientes primero)
+          
           books.sort((a, b) => b.addedAt.compareTo(a.addedAt));
           return books;
         });
@@ -148,7 +148,7 @@ class UserBooksService {
               .map((doc) => UserBook.fromFirestore(doc))
               .toList();
           
-          // Ordenar manualmente por fecha de agregado (más recientes primero)
+          
           books.sort((a, b) => b.addedAt.compareTo(a.addedAt));
           return books;
         });
@@ -170,7 +170,7 @@ class UserBooksService {
 
       return UserBook.fromFirestore(querySnapshot.docs.first);
     } catch (e) {
-      // Si la colección no existe, retornar null sin error
+      
       return null;
     }
   }
@@ -225,7 +225,7 @@ class UserBooksService {
 
       return stats;
     } catch (e) {
-      // Si la colección no existe, retornar estadísticas vacías
+      
       return {
         'total': 0,
         'wantToRead': 0,

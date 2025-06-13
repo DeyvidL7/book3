@@ -9,16 +9,16 @@ class ReviewsService {
 
   static const String _reviewsCollection = 'reviews';
   
-  // Cache local para las reseñas
+  
   final Map<String, List<Review>> _cachedReviews = {};
   final Map<String, Review> _userReviewsCache = {};
   
-  // Stream controllers para cache local
+  
   final Map<String, StreamController<List<Review>>> _streamControllers = {};
 
   ReviewsService() {
     _firestore = FirebaseFirestore.instance;
-    // Configuración más robusta para móvil y web
+    
     try {
       _firestore.settings = const Settings(
         persistenceEnabled: false,
@@ -51,31 +51,31 @@ class ReviewsService {
 
     final docRef = await _firestore.collection(_reviewsCollection).add(review.toFirestore());
     
-    // Actualizar cache local
+    
     final reviewWithId = review.copyWith(id: docRef.id);
     addToLocalCache(reviewWithId);
   }
   
   void addToLocalCache(Review review) {
-    // Agregar a cache de reseñas por libro
+    
     if (_cachedReviews.containsKey(review.bookId)) {
-      // Verificar si ya existe (evitar duplicados)
+      
       final exists = _cachedReviews[review.bookId]!
           .any((r) => r.id == review.id || (r.userId == review.userId && review.id.isEmpty));
       
       if (!exists) {
         _cachedReviews[review.bookId]!.add(review);
       }
-      // Ordenar por fecha
+      
       _cachedReviews[review.bookId]!.sort((a, b) => b.createdAt.compareTo(a.createdAt));
     } else {
       _cachedReviews[review.bookId] = [review];
     }
     
-    // Agregar a cache de reseña del usuario
+    
     _userReviewsCache['${review.bookId}_${review.userId}'] = review;
     
-    // Notificar al stream
+    
     if (_streamControllers.containsKey(review.bookId)) {
       _streamControllers[review.bookId]!.add(_cachedReviews[review.bookId]!);
     }
@@ -95,7 +95,7 @@ class ReviewsService {
       'updatedAt': DateTime.now().millisecondsSinceEpoch,
     });
     
-    // Actualizar cache local - buscar la reseña y actualizarla
+    
     for (final bookId in _cachedReviews.keys) {
       final reviews = _cachedReviews[bookId]!;
       for (int i = 0; i < reviews.length; i++) {
@@ -107,7 +107,7 @@ class ReviewsService {
           );
           reviews[i] = updatedReview;
           
-          // Actualizar también en cache de usuario
+          
           final cacheKey = '${bookId}_${user.uid}';
           _userReviewsCache[cacheKey] = updatedReview;
           break;
@@ -132,7 +132,7 @@ class ReviewsService {
           .snapshots()
           .handleError((error) {
             print('Error en stream de reseñas: $error');
-            // Si hay error con orderBy, intentar sin ordenar
+            
             return _firestore
                 .collection(_reviewsCollection)
                 .where('bookId', isEqualTo: bookId)
@@ -143,13 +143,13 @@ class ReviewsService {
                 .map((doc) => Review.fromFirestore(doc))
                 .toList();
             
-            // Ordenar manualmente si es necesario
+            
             reviews.sort((a, b) => b.createdAt.compareTo(a.createdAt));
             return reviews;
           });
     } catch (e) {
       print('Error creando stream de reseñas: $e');
-      // Fallback: consulta simple sin orderBy
+      
       return _firestore
           .collection(_reviewsCollection)
           .where('bookId', isEqualTo: bookId)
@@ -209,7 +209,7 @@ class ReviewsService {
       final user = _auth.currentUser;
       if (user == null) return null;
 
-      // Primero verificar cache local
+      
       final cacheKey = '${bookId}_${user.uid}';
       if (_userReviewsCache.containsKey(cacheKey)) {
         return _userReviewsCache[cacheKey];
@@ -225,10 +225,10 @@ class ReviewsService {
       if (querySnapshot.docs.isEmpty) return null;
 
       final review = Review.fromFirestore(querySnapshot.docs.first);
-      _userReviewsCache[cacheKey] = review; // Guardar en cache
+      _userReviewsCache[cacheKey] = review; 
       return review;
     } catch (e) {
-      // Si hay error, verificar cache local
+      
       final user = _auth.currentUser;
       if (user != null) {
         final cacheKey = '${bookId}_${user.uid}';
@@ -238,20 +238,20 @@ class ReviewsService {
     }
   }
 
-  // Método que usa cache local y opcionalmente intenta sincronizar con Firestore
+  
   Stream<List<Review>> getReviewsForBookSimple(String bookId) {
-    // Crear stream controller si no existe
+    
     if (!_streamControllers.containsKey(bookId)) {
       _streamControllers[bookId] = StreamController<List<Review>>.broadcast();
     }
     
     final controller = _streamControllers[bookId]!;
     
-    // Emitir cache local inmediatamente
+    
     final cachedReviews = _cachedReviews[bookId] ?? [];
     controller.add(cachedReviews);
     
-    // Intentar cargar de Firestore en background
+    
     _loadFromFirestoreBackground(bookId);
     
     return controller.stream;
@@ -269,27 +269,27 @@ class ReviewsService {
         return Review.fromFirestore(doc);
       }).toList();
       
-      // Ordenar por fecha
+      
       reviews.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       
-      // Actualizar cache
+      
       _cachedReviews[bookId] = reviews;
       
-      // Emitir al stream
+      
       if (_streamControllers.containsKey(bookId)) {
         _streamControllers[bookId]!.add(reviews);
       }
     } catch (e) {
-      // No hacer nada - mantener cache local
+      
     }
   }
   
-  // Método que retorna solo cache local
+  
   List<Review> getCachedReviewsForBook(String bookId) {
     return _cachedReviews[bookId] ?? [];
   }
   
-  // Método de debug para verificar todas las reseñas en Firestore
+  
   Future<void> debugAllReviews() async {
     try {
       print('=== DEBUG: Verificando todas las reseñas en Firestore ===');
@@ -348,7 +348,7 @@ class ReviewsService {
         'ratingDistribution': ratingDistribution,
       };
     } catch (e) {
-      // Si la colección no existe, retornar valores por defecto
+      
       return {
         'averageRating': 0.0,
         'totalReviews': 0,

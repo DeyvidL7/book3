@@ -9,7 +9,7 @@ class Book {
   final List<String> categories;
   final double? averageRating;
   final int? ratingsCount;
-  final String? shelf; // Udacity API shelf property
+  final String? shelf;
 
   Book({
     required this.id,
@@ -25,7 +25,6 @@ class Book {
     this.shelf,
   });
 
-  // Constructor para Google Books API (mantener compatibilidad)
   factory Book.fromJson(Map<String, dynamic> json) {
     return Book(
       id: json['id'] ?? '',
@@ -41,7 +40,6 @@ class Book {
     );
   }
 
-  // Constructor para Udacity Books API
   factory Book.fromUdacityJson(Map<String, dynamic> json) {
     return Book(
       id: json['id'] ?? '',
@@ -133,7 +131,6 @@ class Book {
     }
   }
 
-  // Método para obtener el nombre de la estantería
   String get shelfDisplayName {
     switch (shelf) {
       case 'currentlyReading':

@@ -3,7 +3,7 @@ import '../models/book.dart';
 
 class BooksService {
   static const String _baseUrl = 'https://reactnd-books-api.udacity.com';
-  static const String _token = 'whatever-you-want'; // Token requerido por la API
+  static const String _token = 'whatever-you-want';
   late final Dio _dio;
 
   BooksService() {
@@ -119,7 +119,7 @@ class BooksService {
     }
   }
 
-  // Métodos de conveniencia que usan getAllBooks y filtran localmente
+  
   Future<List<Book>> getPopularBooks() async {
     final allBooks = await getAllBooks();
     return allBooks.take(20).toList();

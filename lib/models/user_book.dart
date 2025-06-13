@@ -145,11 +145,11 @@ class UserBook {
   Color get statusColor {
     switch (status) {
       case ReadingStatus.wantToRead:
-        return const Color(0xFF2196F3); // Blue
+        return const Color(0xFF2196F3);
       case ReadingStatus.reading:
-        return const Color(0xFFFF9800); // Orange
+        return const Color(0xFFFF9800);
       case ReadingStatus.read:
-        return const Color(0xFF4CAF50); // Green
+        return const Color(0xFF4CAF50);
     }
   }
 }

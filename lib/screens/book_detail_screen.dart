@@ -1,3 +1,6 @@
+import 'package:book/models/user_book.dart';
+import 'package:book/screens/dialog/add_book_dialog.dart';
+import 'package:book/services/user_books_service.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -26,6 +29,9 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
   Map<String, dynamic>? _bookStats;
   bool _isLoading = true;
 
+  final UserBooksService _userBooksService = UserBooksService();
+  UserBook? _userBook;
+
   @override
   void initState() {
     super.initState();
@@ -38,11 +44,19 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
     });
 
     try {
-      // Usar timeout para evitar esperas infinitas
+      
       await Future.any([
         _loadFirestoreData(),
         Future.delayed(const Duration(seconds: 8), () => throw Exception('Timeout')),
       ]);
+      if (FirebaseAuth.instance.currentUser != null) {
+        final userBook = await _userBooksService.getUserBookByBookId(
+          widget.book.id,
+        );
+        setState(() {
+          _userBook = userBook;
+        });
+      }
     } catch (e) {
       print('Error cargando datos: $e');
       setState(() {
@@ -54,6 +68,97 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
           'ratingDistribution': {1: 0, 2: 0, 3: 0, 4: 0, 5: 0},
         };
       });
+    }
+  }
+
+  void _handleAddOrEditBook() async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) =>
+          AddBookDialog(book: widget.book, existingUserBook: _userBook),
+    );
+
+    if (result == true) {
+      
+      if (FirebaseAuth.instance.currentUser != null) {
+        final userBook = await _userBooksService.getUserBookByBookId(
+          widget.book.id,
+        );
+        setState(() {
+          _userBook = userBook;
+        });
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              _userBook == null
+                  ? 'Libro agregado a tu biblioteca'
+                  : 'Libro actualizado en tu biblioteca',
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
+  void _removeFromLibrary() async {
+    if (_userBook == null) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Eliminar de Mi Biblioteca'),
+        content: Text(
+          '¿Estás seguro de que quieres eliminar "${widget.book.title}" de tu biblioteca?',
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      await _userBooksService.removeBookFromLibrary(_userBook!.id);
+      setState(() {
+        _userBook = null;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Libro eliminado de tu biblioteca'),
+            backgroundColor: Colors.orange,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error al eliminar libro: $e'),
+            backgroundColor: Theme.of(context).colorScheme.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     }
   }
 
@@ -168,12 +273,47 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         title: const Text('Detalles del Libro'),
         backgroundColor: Theme.of(context).colorScheme.inversePrimary,
         actions: [
-          IconButton(
-            onPressed: () {
-              // TODO: Implementar agregar a favoritos
-            },
-            icon: const Icon(Icons.favorite_border),
-          ),
+          if (FirebaseAuth.instance.currentUser != null) ...[
+            if (_userBook != null)
+              PopupMenuButton<String>(
+                icon: Icon(Icons.bookmark, color: _userBook!.statusColor),
+                onSelected: (value) {
+                  if (value == 'edit') {
+                    _handleAddOrEditBook();
+                  } else if (value == 'remove') {
+                    _removeFromLibrary();
+                  }
+                },
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: 'edit',
+                    child: Row(
+                      children: [
+                        const Icon(Icons.edit, size: 20),
+                        const SizedBox(width: 12),
+                        Text('Editar (${_userBook!.statusDisplayName})'),
+                      ],
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'remove',
+                    child: Row(
+                      children: [
+                        Icon(Icons.remove_circle, size: 20, color: Colors.red),
+                        SizedBox(width: 12),
+                        Text('Eliminar de biblioteca'),
+                      ],
+                    ),
+                  ),
+                ],
+              )
+            else
+              IconButton(
+                onPressed: _handleAddOrEditBook,
+                icon: const Icon(Icons.bookmark_add),
+                tooltip: 'Agregar a Mi Biblioteca',
+              ),
+          ],
         ],
       ),
       body: SingleChildScrollView(
@@ -265,6 +405,49 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
                   color: Colors.grey[600],
                 ),
               ),
+              if (_userBook != null) ...[
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _userBook!.statusColor.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: _userBook!.statusColor.withOpacity(0.3),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: _userBook!.statusColor,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        _userBook!.statusDisplayName,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: _userBook!.statusColor,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (_userBook!.isFavorite) ...[
+                        const SizedBox(width: 6),
+                        Icon(Icons.favorite, size: 14, color: Colors.red[400]),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+
               const SizedBox(height: 16),
               if (_bookStats != null && !_isLoading) ...[
                 Row(
