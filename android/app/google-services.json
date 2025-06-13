@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "1072251839491",
+    "project_id": "ng-task-18-aff84",
+    "storage_bucket": "ng-task-18-aff84.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1072251839491:android:70b1849e00e1fff7d69a36",
+        "android_client_info": {
+          "package_name": "com.capsule.book"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1072251839491-btvn5lr3jfse8pe470960d0qa9ojed91.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDKEXs6NoDpkvdUvBdQTJLFdDcc0M0TmEQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1072251839491-btvn5lr3jfse8pe470960d0qa9ojed91.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
