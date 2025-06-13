@@ -39,15 +39,19 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
     try {
       final books = await _booksService.getAllBooks();
-      setState(() {
-        _books = books;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _books = books;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _errorMessage = e.toString();
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -62,15 +66,19 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
     try {
       final books = await _booksService.searchBooks(query: query.trim());
-      setState(() {
-        _books = books;
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _books = books;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
-      setState(() {
-        _errorMessage = e.toString();
-        _isLoading = false;
-      });
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+          _isLoading = false;
+        });
+      }
     }
   }
 
