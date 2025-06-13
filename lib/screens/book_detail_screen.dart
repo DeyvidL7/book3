@@ -446,7 +446,7 @@ class _BookDetailScreenState extends State<BookDetailScreen> {
         ),
         const SizedBox(height: 16),
         StreamBuilder<List<Review>>(
-          stream: _reviewsService.getReviewsForBook(widget.book.id),
+          stream: _reviewsService.getReviewsForBookSimple(widget.book.id),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(

@@ -49,13 +49,7 @@ class ReviewsService {
       updatedAt: now,
     );
 
-    print('Guardando reseña para libro: $bookId');
-    print('Usuario: ${user.uid}');
-    print('Rating: $rating');
-    print('Datos de reseña: ${review.toFirestore()}');
-
     final docRef = await _firestore.collection(_reviewsCollection).add(review.toFirestore());
-    print('Reseña guardada con ID: ${docRef.id}');
     
     // Actualizar cache local
     final reviewWithId = review.copyWith(id: docRef.id);
@@ -83,7 +77,6 @@ class ReviewsService {
     
     // Notificar al stream
     if (_streamControllers.containsKey(review.bookId)) {
-      print('Notificando stream con ${_cachedReviews[review.bookId]!.length} reseñas');
       _streamControllers[review.bookId]!.add(_cachedReviews[review.bookId]!);
     }
   }
@@ -219,7 +212,6 @@ class ReviewsService {
       // Primero verificar cache local
       final cacheKey = '${bookId}_${user.uid}';
       if (_userReviewsCache.containsKey(cacheKey)) {
-        print('Reseña encontrada en cache local');
         return _userReviewsCache[cacheKey];
       }
 
@@ -236,7 +228,6 @@ class ReviewsService {
       _userReviewsCache[cacheKey] = review; // Guardar en cache
       return review;
     } catch (e) {
-      print('Error obteniendo reseña de usuario: $e');
       // Si hay error, verificar cache local
       final user = _auth.currentUser;
       if (user != null) {
@@ -249,8 +240,6 @@ class ReviewsService {
 
   // Método que usa cache local y opcionalmente intenta sincronizar con Firestore
   Stream<List<Review>> getReviewsForBookSimple(String bookId) {
-    print('Iniciando stream para libro: $bookId');
-    
     // Crear stream controller si no existe
     if (!_streamControllers.containsKey(bookId)) {
       _streamControllers[bookId] = StreamController<List<Review>>.broadcast();
@@ -260,7 +249,6 @@ class ReviewsService {
     
     // Emitir cache local inmediatamente
     final cachedReviews = _cachedReviews[bookId] ?? [];
-    print('Emitiendo cache local: ${cachedReviews.length} reseñas');
     controller.add(cachedReviews);
     
     // Intentar cargar de Firestore en background
@@ -271,7 +259,6 @@ class ReviewsService {
   
   void _loadFromFirestoreBackground(String bookId) async {
     try {
-      print('Intentando cargar de Firestore para libro: $bookId');
       final querySnapshot = await _firestore
           .collection(_reviewsCollection)
           .where('bookId', isEqualTo: bookId)
@@ -279,14 +266,11 @@ class ReviewsService {
           .timeout(const Duration(seconds: 5));
       
       final reviews = querySnapshot.docs.map((doc) {
-        print('Documento encontrado: ${doc.id}');
         return Review.fromFirestore(doc);
       }).toList();
       
       // Ordenar por fecha
       reviews.sort((a, b) => b.createdAt.compareTo(a.createdAt));
-      
-      print('Cargadas ${reviews.length} reseñas de Firestore');
       
       // Actualizar cache
       _cachedReviews[bookId] = reviews;
@@ -296,7 +280,6 @@ class ReviewsService {
         _streamControllers[bookId]!.add(reviews);
       }
     } catch (e) {
-      print('Error cargando de Firestore: $e');
       // No hacer nada - mantener cache local
     }
   }
